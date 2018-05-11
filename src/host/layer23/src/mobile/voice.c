@@ -39,8 +39,10 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 	struct gsm_data_frame *frame;
 
 	/* Make sure that a MNCC handler is set */
-	if (!ms->mncc_entity.mncc_recv)
+	if (!ms->mncc_entity.mncc_recv) {
+		msgb_free(msg);
 		return -ENOTSUP;
+	}
 
 	/* TODO: Make sure there is an active call */
 
@@ -65,12 +67,13 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 
 	/* Build-in GAPK-based audio back-end */
 	case AUDIO_IO_GAPK:
-		/* Push a frame to the DL frame buffer */
+		/* Prevent null pointer dereference */
 		if (!ms->gapk_io) {
 			msgb_free(msg);
 			break;
 		}
 
+		/* Push a frame to the DL frame buffer */
 		msgb_enqueue(&ms->gapk_io->tch_fb_dl, msg);
 		break;
 
