@@ -58,11 +58,11 @@ static int pq_queue_tch_fb_recv(void *_state, uint8_t *out,
 	if (!tch_msg)
 		return -EIO;
 
-	/* FIXME: determine frame_len depending on a codec used */
-	frame_len = FR_CANON_LEN;
+	/* Calculate received frame length */
+	frame_len = msgb_l3len(tch_msg);
 
 	/* Copy the frame bytes from message */
-	memcpy(out, tch_msg->l2h, frame_len);
+	memcpy(out, tch_msg->l3h, frame_len);
 
 	/* Release memory */
 	msgb_free(tch_msg);
@@ -77,12 +77,12 @@ static int pq_queue_tch_fb_send(void *_state, uint8_t *out,
 	struct msgb *tch_msg;
 
 	/* Allocate a new message for the lower layers */
-	tch_msg = msgb_alloc_headroom(FR_CANON_LEN + 64, 64, "TCH frame");
+	tch_msg = msgb_alloc_headroom(in_len + 64, 64, "TCH frame");
 	if (!tch_msg)
 		return -ENOMEM;
 
 	/* Copy the frame bytes to a new message */
-	tch_msg->l2h = msgb_put(tch_msg, FR_CANON_LEN);
+	tch_msg->l2h = msgb_put(tch_msg, in_len);
 	memcpy(tch_msg->l2h, in, in_len);
 
 	/* Put encoded TCH frame to the UL buffer */
@@ -100,6 +100,7 @@ static int pq_queue_tch_fb(struct osmo_gapk_pq *pq,
 	struct gapk_io_state *io_state, int is_src)
 {
 	struct osmo_gapk_pq_item *item;
+	unsigned int frame_len;
 
 	LOGP(DGAPK, LOGL_DEBUG, "PQ '%s': Adding TCH frame buffer %s\n",
 		pq->name, is_src ? "input" : "output");
@@ -113,11 +114,12 @@ static int pq_queue_tch_fb(struct osmo_gapk_pq *pq,
 	item->type = is_src ?
 		OSMO_GAPK_ITEM_TYPE_SOURCE : OSMO_GAPK_ITEM_TYPE_SINK;
 	item->cat_name = is_src ? "source" : "sink";
-	item->sub_name = "tch_io";
+	item->sub_name = "tch_fb";
 
 	/* I/O length */
-	item->len_in  = is_src ? 0 : FR_CANON_LEN;
-	item->len_out = is_src ? FR_CANON_LEN : 0;
+	frame_len = io_state->codec_desc->canon_frame_len;
+	item->len_in  = is_src ? 0 : frame_len;
+	item->len_out = is_src ? frame_len : 0;
 
 	/* Handler and it's state */
 	item->proc = is_src ?
