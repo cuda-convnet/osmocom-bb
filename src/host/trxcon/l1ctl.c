@@ -793,6 +793,9 @@ int l1ctl_rx_cb(struct l1ctl_link *l1l, struct msgb *msg)
 		return l1ctl_rx_tch_mode_req(l1l, msg);
 	case L1CTL_CRYPTO_REQ:
 		return l1ctl_rx_crypto_req(l1l, msg);
+	case L1CTL_NEIGH_PM_REQ:
+		LOGP(DL1C, LOGL_DEBUG, "Ignoring L1CTL_NEIGH_PM_REQ\n");
+		return -EINVAL;
 	default:
 		LOGP(DL1C, LOGL_ERROR, "Unknown MSG type %u: %s\n", l1h->msg_type,
 			osmo_hexdump(msgb_data(msg), msgb_length(msg)));
