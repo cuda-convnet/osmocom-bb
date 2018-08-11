@@ -123,8 +123,8 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 	}
 
 	/* skip second of two TCH frames of FACCH was received */
-	if (lchan->ul_ongoing_facch) {
-		lchan->ul_ongoing_facch = false;
+	if (lchan->dl_ongoing_facch) {
+		lchan->dl_ongoing_facch = false;
 		memcpy(buffer, buffer + 232, 232);
 		memcpy(buffer + 232, buffer + 464, 232);
 		goto bfi;
@@ -163,7 +163,7 @@ int rx_tchh_fn(struct trx_instance *trx, struct trx_ts *ts,
 		/* Send BFI */
 		goto bfi;
 	} else if (rc == GSM_MACBLOCK_LEN) {
-		lchan->ul_ongoing_facch = true;
+		lchan->dl_ongoing_facch = true;
 		/* FACCH received, forward it to the higher layers */
 		sched_send_dt_ind(trx, ts, lchan, l2, GSM_MACBLOCK_LEN,
 			n_errors, false, false);
