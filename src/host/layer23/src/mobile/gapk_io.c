@@ -38,7 +38,6 @@
 #include <osmocom/bb/common/osmocom_data.h>
 #include <osmocom/bb/common/logging.h>
 
-#include <osmocom/bb/mobile/mncc.h>
 #include <osmocom/bb/mobile/voice.h>
 
 /* The RAW PCM format is common for both audio source and sink */
@@ -467,25 +466,13 @@ int gapk_io_dequeue(struct osmocom_ms *ms)
 	}
 
 	while (!llist_empty(&gapk_io->tch_fb_ul)) {
-		struct gsm_data_frame *frame;
 		struct msgb *tch_msg;
 
 		/* Obtain one TCH frame from the UL buffer */
 		tch_msg = msgb_dequeue(&gapk_io->tch_fb_ul);
 
-		/* Prepend frame header */
-		frame = (struct gsm_data_frame *)
-			msgb_push(tch_msg, sizeof(struct gsm_data_frame));
-
-		/* FIXME: prepare frame header */
-		frame->callref = ms->mncc_entity.ref;
-		frame->msg_type = GSM_TCHF_FRAME;
-
 		/* Push a voice frame to the lower layers */
-		gsm_send_voice(ms, frame);
-
-		/* Release memory */
-		talloc_free(tch_msg);
+		gsm_send_voice(ms, tch_msg);
 
 		work |= 1;
 	}
