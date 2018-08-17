@@ -38,6 +38,7 @@
 static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 {
 	struct gsm_data_frame *frame;
+	size_t frame_len;
 
 	/* Make sure that a MNCC handler is set */
 	if (!ms->mncc_entity.mncc_recv) {
@@ -55,8 +56,25 @@ static int gsm_recv_voice(struct osmocom_ms *ms, struct msgb *msg)
 		frame = (struct gsm_data_frame *)
 			msgb_push(msg, sizeof(struct gsm_data_frame));
 
-		/* FIXME: set proper msg_type */
-		frame->msg_type = GSM_TCHF_FRAME;
+		/* Determine a frame type */
+		frame_len = msgb_l3len(msg);
+		switch (frame_len) {
+		case GSM_FR_BYTES:
+			frame->msg_type = GSM_TCHF_FRAME;
+			break;
+		case GSM_EFR_BYTES:
+			frame->msg_type = GSM_TCHF_FRAME_EFR;
+			break;
+		case GSM_HR_BYTES:
+			frame->msg_type = GSM_TCHH_FRAME;
+			break;
+		case GSM_TCH_FRAME_AMR: /* FIXME! */
+		default:
+			/* TODO: add some logging here */
+			msgb_free(msg);
+			return -ENOTSUP;
+		}
+
 		frame->callref = ms->mncc_entity.ref;
 
 		/* Forward to an MNCC-handler */
